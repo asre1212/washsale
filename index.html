@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#F9F8F4" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Wash Sale" />
+  <meta name="format-detection" content="telephone=no" />
+
+  <title>Wash Sale Tracker</title>
+
+  <!-- Icons (inline SVG so it's truly single-file) -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%23F9F8F4'/><path d='M90 28 C58 50 50 86 64 116 C72 132 86 144 90 152 C94 144 108 132 116 116 C130 86 122 50 90 28 Z' fill='%238C9A84'/><path d='M90 36 L90 150' stroke='%232D3A31' stroke-width='2' stroke-linecap='round' opacity='0.5'/></svg>" />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23F9F8F4'/><path d='M32 10 C20 18 17 30 23 41 C26 47 31 52 32 55 C33 52 38 47 41 41 C47 30 44 18 32 10 Z' fill='%238C9A84'/></svg>" />
+
+  <!-- Inline manifest (data URL) for PWA install -->
+  <link rel="manifest" href='data:application/manifest+json;charset=utf-8,{"name":"Wash Sale Tracker","short_name":"Wash Sale","start_url":"./","scope":"./","display":"standalone","orientation":"portrait","background_color":"%23F9F8F4","theme_color":"%23F9F8F4","icons":[{"src":"data:image/svg+xml;utf8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 512 512%22%3E%3Crect width=%22512%22 height=%22512%22 rx=%22112%22 fill=%22%23F9F8F4%22/%3E%3Cpath d=%22M256 80 C166 142 142 246 184 330 C208 376 244 410 256 432 C268 410 304 376 328 330 C370 246 346 142 256 80 Z%22 fill=%22%238C9A84%22/%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]}' />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600;1,700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    *:focus-visible { outline: 2px solid #8C9A84; outline-offset: 2px; }
+
+    :root {
+      --bg: #F9F8F4;          /* Warm Alabaster */
+      --fg: #2D3A31;          /* Deep Forest */
+      --sage: #8C9A84;        /* Sage */
+      --sage-deep: #6E8166;   /* Deeper sage for "green" status */
+      --clay: #DCCFC2;        /* Soft Clay */
+      --clay-soft: #F2F0EB;   /* Mushroom whisper */
+      --stone: #E6E2DA;       /* Stone border */
+      --terracotta: #C27B66;  /* Interactive / "red" status */
+      --white: #FFFFFF;
+      --shadow-sm: 0 4px 6px -1px rgba(45, 58, 49, .05);
+      --shadow-md: 0 10px 15px -3px rgba(45, 58, 49, .06);
+      --shadow-lg: 0 20px 40px -10px rgba(45, 58, 49, .10);
+      --shadow-xl: 0 25px 50px -12px rgba(45, 58, 49, .15);
+    }
+
+    html { -webkit-text-size-adjust: 100%; }
+    html, body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 400;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior-y: contain;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+    body {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+
+    /* Paper grain — the soul of the design */
+    .grain {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      pointer-events: none;
+      opacity: .015;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+    }
+
+    .app {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 24px 20px 140px;
+    }
+
+    /* Header */
+    .header { text-align: center; padding: 16px 0 28px; }
+    .eyebrow {
+      font-size: 11px;
+      letter-spacing: .25em;
+      text-transform: uppercase;
+      color: var(--sage);
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 600;
+      font-size: 44px;
+      line-height: 1.02;
+      letter-spacing: -0.015em;
+    }
+    h1 em {
+      font-style: italic;
+      font-weight: 600;
+      color: var(--sage);
+    }
+    .header .divider {
+      width: 36px;
+      height: 1px;
+      background: var(--stone);
+      margin: 22px auto 0;
+    }
+
+    /* Stats */
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      position: relative;
+      background: var(--white);
+      border-radius: 24px;
+      padding: 22px 16px 20px;
+      border: 1px solid var(--stone);
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+      transition: transform 500ms ease-out, box-shadow 500ms ease-out;
+    }
+    .stat-card.cleared { background: linear-gradient(180deg, #EDF1E8 0%, #FBFCF8 100%); border-color: rgba(110,129,102,.18); }
+    .stat-card.active  { background: linear-gradient(180deg, #F8E7E0 0%, #FCF7F4 100%); border-color: rgba(194,123,102,.22); }
+
+    .stat-card .num {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 44px;
+      font-weight: 600;
+      line-height: 1;
+    }
+    .stat-card.cleared .num { color: var(--sage-deep); }
+    .stat-card.active  .num { color: var(--terracotta); }
+    .stat-card .label {
+      font-size: 11px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--sage);
+      margin-top: 8px;
+    }
+    .stat-card .sublabel {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-size: 13px;
+      color: var(--fg);
+      opacity: .7;
+      margin-top: 4px;
+    }
+
+    /* Add button */
+    .add-btn {
+      width: 100%;
+      background: var(--fg);
+      color: var(--white);
+      border: none;
+      border-radius: 9999px;
+      padding: 17px 24px;
+      font-family: 'Source Sans 3';
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background-color 300ms ease-out, transform 300ms ease-out;
+      margin-bottom: 18px;
+      min-height: 52px;
+    }
+    .add-btn:hover { background: var(--terracotta); }
+    .add-btn:active { transform: scale(.98); }
+
+    /* Form */
+    .form {
+      background: var(--white);
+      border: 1px solid var(--stone);
+      border-radius: 28px;
+      padding: 22px 20px 20px;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow-md);
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      padding-top: 0;
+      padding-bottom: 0;
+      border-width: 0;
+      transition: max-height 500ms ease-out, opacity 400ms ease-out, padding 400ms ease-out, border-width 0s linear 500ms, margin 400ms ease-out;
+    }
+    .form.open {
+      max-height: 600px;
+      opacity: 1;
+      padding-top: 22px;
+      padding-bottom: 20px;
+      border-width: 1px;
+      transition: max-height 500ms ease-out, opacity 400ms ease-out 100ms, padding 400ms ease-out, border-width 0s linear, margin 400ms ease-out;
+    }
+    .form h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 18px;
+    }
+    .form h3 em { font-style: normal; color: var(--sage); }
+    .field { margin-bottom: 12px; }
+    .field label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--sage);
+      margin-bottom: 6px;
+      padding-left: 4px;
+    }
+    .field input {
+      width: 100%;
+      background: var(--clay-soft);
+      border: 1px solid transparent;
+      border-radius: 9999px;
+      padding: 14px 18px;
+      font-family: 'Source Sans 3';
+      font-size: 16px;
+      color: var(--fg);
+      outline: none;
+      transition: border-color 300ms ease-out, background-color 300ms ease-out;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .field input::placeholder { color: var(--sage); opacity: .65; }
+    .field input:focus { border-color: var(--sage); background: var(--white); }
+
+    .form-actions { display: flex; gap: 10px; margin-top: 18px; }
+    .btn {
+      flex: 1;
+      border-radius: 9999px;
+      padding: 14px 20px;
+      font-family: 'Source Sans 3';
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 300ms ease-out;
+      min-height: 48px;
+    }
+    .btn-primary { background: var(--fg); color: var(--white); }
+    .btn-primary:hover { background: var(--terracotta); }
+    .btn-secondary { background: transparent; border-color: var(--sage); color: var(--sage); }
+    .btn-secondary:hover { background: var(--clay-soft); }
+    .btn:active { transform: scale(.98); }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 14px;
+      padding: 0 4px;
+    }
+    .section-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .icon-btn {
+      background: transparent;
+      border: 1px solid var(--stone);
+      color: var(--fg);
+      border-radius: 9999px;
+      padding: 9px 16px;
+      font-family: 'Source Sans 3';
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 300ms ease-out;
+      min-height: 36px;
+    }
+    .icon-btn.active {
+      background: var(--fg);
+      color: var(--white);
+      border-color: var(--fg);
+    }
+    .icon-btn:active { transform: scale(.97); }
+
+    /* Entries */
+    .entries { display: flex; flex-direction: column; gap: 12px; }
+
+    .group-label {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-size: 14px;
+      color: var(--sage);
+      padding: 14px 8px 2px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .group-label .line {
+      flex: 1;
+      height: 1px;
+      background: var(--stone);
+    }
+
+    .entry {
+      background: var(--white);
+      border: 1px solid var(--stone);
+      border-radius: 24px;
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 500ms ease-out, box-shadow 500ms ease-out, background 500ms ease-out;
+      position: relative;
+      overflow: hidden;
+    }
+    .entry::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      transition: background 500ms ease-out;
+    }
+    .entry.cleared {
+      background: linear-gradient(135deg, #EAF0E3 0%, #F8FAF4 100%);
+      border-color: rgba(110,129,102,.22);
+    }
+    .entry.cleared::before { background: var(--sage-deep); }
+
+    .entry.active {
+      background: linear-gradient(135deg, #F4DBD0 0%, #FBF1EC 100%);
+      border-color: rgba(194,123,102,.30);
+    }
+    .entry.active::before { background: var(--terracotta); }
+
+    .entry:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+    .entry .check {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 1.5px solid var(--stone);
+      background: var(--white);
+      flex-shrink: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: all 300ms ease-out;
+    }
+    .entry.selectable .check { display: flex; }
+    .entry .check.checked { background: var(--terracotta); border-color: var(--terracotta); }
+    .entry .check.checked::after {
+      content: '';
+      width: 8px;
+      height: 4px;
+      border-left: 2px solid white;
+      border-bottom: 2px solid white;
+      transform: rotate(-45deg) translate(0, -1px);
+    }
+
+    .entry .body { flex: 1; min-width: 0; }
+    .symbol-row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .entry .symbol {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: 22px;
+      line-height: 1.1;
+      letter-spacing: -.005em;
+      color: var(--fg);
+    }
+    .entry .qty {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-size: 14px;
+      color: var(--sage);
+    }
+    .entry .meta {
+      font-size: 12px;
+      color: var(--sage);
+      margin-top: 4px;
+      letter-spacing: .03em;
+    }
+
+    .entry .right {
+      text-align: right;
+      flex-shrink: 0;
+      min-width: 56px;
+    }
+    .entry .days {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-weight: 600;
+      font-size: 22px;
+      line-height: 1;
+    }
+    .entry.cleared .days { color: var(--sage-deep); }
+    .entry.active .days { color: var(--terracotta); }
+    .entry .days-label {
+      font-size: 9px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--sage);
+      margin-top: 5px;
+    }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 56px 24px;
+      background: var(--clay-soft);
+      border-radius: 32px;
+      border: 1px dashed var(--stone);
+    }
+    .empty .arch {
+      width: 72px;
+      height: 96px;
+      border-radius: 36px 36px 8px 8px;
+      background: var(--clay);
+      margin: 0 auto 18px;
+      position: relative;
+      box-shadow: inset 0 -4px 12px rgba(45,58,49,.06);
+    }
+    .empty .arch::after {
+      content: "∽";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 40px;
+      color: var(--sage);
+    }
+    .empty h4 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-weight: 600;
+      font-size: 22px;
+      color: var(--fg);
+      margin-bottom: 6px;
+    }
+    .empty p { color: var(--sage); font-size: 14px; line-height: 1.6; }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 36px 20px 12px;
+      color: var(--sage);
+      font-size: 10px;
+      letter-spacing: .25em;
+      text-transform: uppercase;
+    }
+    .footer .leaf {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 18px;
+      color: var(--clay);
+      margin: 0 12px;
+      text-transform: none;
+      letter-spacing: 0;
+      vertical-align: middle;
+    }
+
+    /* Floating delete bar */
+    .confirm-bar {
+      position: fixed;
+      left: 16px;
+      right: 16px;
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      background: var(--fg);
+      color: var(--white);
+      border-radius: 9999px;
+      padding: 10px 10px 10px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-xl);
+      z-index: 60;
+      transform: translateY(120%);
+      opacity: 0;
+      transition: transform 500ms ease-out, opacity 400ms ease-out;
+      max-width: 568px;
+      margin: 0 auto;
+    }
+    .confirm-bar.show { transform: translateY(0); opacity: 1; }
+    .confirm-bar .count {
+      font-size: 12px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+    .confirm-bar .count em {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 16px;
+      letter-spacing: 0;
+      color: var(--clay);
+      margin-right: 6px;
+      text-transform: none;
+    }
+    .confirm-bar button {
+      background: var(--terracotta);
+      color: var(--white);
+      border: none;
+      border-radius: 9999px;
+      padding: 12px 22px;
+      font-family: 'Source Sans 3';
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background-color 300ms ease-out, transform 300ms ease-out;
+      min-height: 40px;
+    }
+    .confirm-bar button:active { transform: scale(.96); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: calc(20px + env(safe-area-inset-top));
+      left: 50%;
+      transform: translate(-50%, -120%);
+      background: var(--fg);
+      color: var(--white);
+      padding: 12px 22px;
+      border-radius: 9999px;
+      font-size: 13px;
+      letter-spacing: .05em;
+      box-shadow: var(--shadow-lg);
+      z-index: 70;
+      transition: transform 500ms ease-out;
+      pointer-events: none;
+    }
+    .toast.show { transform: translate(-50%, 0); }
+
+    /* Subtle entry fade-in */
+    @keyframes floatUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .entry { animation: floatUp 500ms ease-out both; }
+
+    @media (min-width: 480px) {
+      h1 { font-size: 56px; }
+      .stat-card .num { font-size: 52px; }
+      .app { padding: 32px 28px 140px; }
+    }
+
+    @media (display-mode: standalone) {
+      body { background: var(--bg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <main class="app">
+    <header class="header">
+      <div class="eyebrow">Botanical Ledger</div>
+      <h1>Wash Sale<br /><em>Tracker</em></h1>
+      <div class="divider"></div>
+    </header>
+
+    <section class="stats" aria-label="Summary">
+      <div class="stat-card cleared">
+        <div class="num" id="clearedCount">0</div>
+        <div class="label">Cleared</div>
+        <div class="sublabel">free &amp; clear</div>
+      </div>
+      <div class="stat-card active">
+        <div class="num" id="activeCount">0</div>
+        <div class="label">In Wash</div>
+        <div class="sublabel">still resting</div>
+      </div>
+    </section>
+
+    <button class="add-btn" id="toggleForm" type="button">+ &nbsp;New Entry</button>
+
+    <form class="form" id="entryForm" autocomplete="off" novalidate>
+      <h3>Record a <em>sale</em></h3>
+      <div class="field">
+        <label for="symbol">Symbol</label>
+        <input id="symbol" type="text" inputmode="text" autocapitalize="characters" maxlength="10" placeholder="AAPL" required />
+      </div>
+      <div class="field">
+        <label for="quantity">Quantity</label>
+        <input id="quantity" type="number" inputmode="decimal" step="any" min="0" placeholder="100" required />
+      </div>
+      <div class="field">
+        <label for="dateSold">Date sold</label>
+        <input id="dateSold" type="date" required />
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+
+    <div class="toolbar">
+      <div class="section-title">Entries</div>
+      <button class="icon-btn" id="selectBtn" type="button">Select</button>
+    </div>
+
+    <div class="entries" id="entriesList"></div>
+
+    <footer class="footer">
+      <span class="leaf">~</span>
+      Auto-clears at 32 days
+      <span class="leaf">~</span>
+    </footer>
+  </main>
+
+  <div class="confirm-bar" id="confirmBar" role="region" aria-label="Selection actions">
+    <div class="count"><em id="selectedCount">0</em>Selected</div>
+    <button type="button" id="deleteBtn">Delete</button>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    "use strict";
+
+    // ─────────────────────────────────────────────
+    //  Storage
+    // ─────────────────────────────────────────────
+    const STORAGE_KEY = "washSales_v1";
+
+    /** @type {{id:string, symbol:string, quantity:number, date:string, created:number}[]} */
+    let entries = [];
+    let selectMode = false;
+    const selected = new Set();
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        entries = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(entries)) entries = [];
+      } catch (_) {
+        entries = [];
+      }
+    }
+    function save() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
+      catch (_) { /* storage may be full or disabled */ }
+    }
+
+    // ─────────────────────────────────────────────
+    //  Wash sale logic
+    //  Red while < 32 days, green on/after the 32nd day.
+    // ─────────────────────────────────────────────
+    function daysSince(dateStr) {
+      const sold = new Date(dateStr + "T00:00:00");
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      sold.setHours(0, 0, 0, 0);
+      return Math.floor((now - sold) / 86400000);
+    }
+    function isCleared(dateStr) { return daysSince(dateStr) >= 32; }
+    function daysRemaining(dateStr) { return Math.max(0, 32 - daysSince(dateStr)); }
+
+    function fmtDate(dateStr) {
+      const d = new Date(dateStr + "T00:00:00");
+      return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    }
+    function fmtQty(n) {
+      const num = Number(n);
+      if (!isFinite(num)) return String(n);
+      return num.toLocaleString(undefined, { maximumFractionDigits: 6 });
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, m => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[m]));
+    }
+
+    // ─────────────────────────────────────────────
+    //  Render
+    // ─────────────────────────────────────────────
+    const els = {
+      list: document.getElementById("entriesList"),
+      cleared: document.getElementById("clearedCount"),
+      active: document.getElementById("activeCount"),
+      form: document.getElementById("entryForm"),
+      toggleBtn: document.getElementById("toggleForm"),
+      cancelBtn: document.getElementById("cancelBtn"),
+      selectBtn: document.getElementById("selectBtn"),
+      deleteBtn: document.getElementById("deleteBtn"),
+      confirmBar: document.getElementById("confirmBar"),
+      selectedCount: document.getElementById("selectedCount"),
+      symbol: document.getElementById("symbol"),
+      quantity: document.getElementById("quantity"),
+      date: document.getElementById("dateSold"),
+      toast: document.getElementById("toast"),
+    };
+
+    function render() {
+      // Sort: cleared (green) first, then active (red).
+      // Within cleared, most recently cleared on top.
+      // Within active, fewest days remaining (closest to clearing) on top.
+      const cleared = [];
+      const active = [];
+      entries.forEach(e => (isCleared(e.date) ? cleared : active).push(e));
+
+      cleared.sort((a, b) => new Date(b.date) - new Date(a.date));
+      active.sort((a, b) => daysRemaining(a.date) - daysRemaining(b.date));
+
+      els.cleared.textContent = cleared.length;
+      els.active.textContent = active.length;
+
+      if (entries.length === 0) {
+        els.list.innerHTML = `
+          <div class="empty">
+            <div class="arch" aria-hidden="true"></div>
+            <h4>No entries yet</h4>
+            <p>Record your first sale above.<br/>The garden grows from one seed.</p>
+          </div>`;
+        return;
+      }
+
+      const sections = [];
+      if (cleared.length) {
+        sections.push(renderGroup("Cleared", cleared));
+      }
+      if (active.length) {
+        sections.push(renderGroup("In wash period", active));
+      }
+      els.list.innerHTML = sections.join("");
+
+      // Attach click handlers (selection mode)
+      els.list.querySelectorAll(".entry").forEach(el => {
+        el.addEventListener("click", () => {
+          if (!selectMode) return;
+          const id = el.dataset.id;
+          if (selected.has(id)) selected.delete(id);
+          else selected.add(id);
+          syncConfirmBar();
+          render();
+        });
+      });
+    }
+
+    function renderGroup(label, items) {
+      const cards = items.map(e => {
+        const cleared = isCleared(e.date);
+        const remaining = daysRemaining(e.date);
+        const checked = selected.has(e.id);
+        return `
+          <div class="entry ${cleared ? "cleared" : "active"} ${selectMode ? "selectable" : ""}" data-id="${e.id}">
+            <div class="check ${checked ? "checked" : ""}" aria-hidden="true"></div>
+            <div class="body">
+              <div class="symbol-row">
+                <span class="symbol">${escapeHtml(e.symbol)}</span>
+                <span class="qty">${fmtQty(e.quantity)} sh</span>
+              </div>
+              <div class="meta">Sold ${fmtDate(e.date)}</div>
+            </div>
+            <div class="right">
+              <div class="days">${cleared ? "✓" : remaining}</div>
+              <div class="days-label">${cleared ? "Clear" : (remaining === 1 ? "day left" : "days left")}</div>
+            </div>
+          </div>`;
+      }).join("");
+
+      return `
+        <div class="group-label"><span class="line"></span>${label}<span class="line"></span></div>
+        ${cards}`;
+    }
+
+    // ─────────────────────────────────────────────
+    //  Form
+    // ─────────────────────────────────────────────
+    function todayISO() {
+      const d = new Date();
+      const tz = d.getTimezoneOffset() * 60000;
+      return new Date(d - tz).toISOString().slice(0, 10);
+    }
+
+    function openForm() {
+      els.form.classList.add("open");
+      els.toggleBtn.textContent = "× Close";
+      if (!els.date.value) els.date.value = todayISO();
+      setTimeout(() => els.symbol.focus(), 250);
+    }
+    function closeForm() {
+      els.form.classList.remove("open");
+      els.toggleBtn.textContent = "+  New Entry";
+    }
+
+    els.toggleBtn.addEventListener("click", () => {
+      if (els.form.classList.contains("open")) closeForm();
+      else openForm();
+    });
+    els.cancelBtn.addEventListener("click", () => {
+      els.form.reset();
+      closeForm();
+    });
+
+    els.form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const symbol = els.symbol.value.trim().toUpperCase().replace(/\s+/g, "");
+      const quantity = Number(els.quantity.value);
+      const date = els.date.value;
+      if (!symbol || !isFinite(quantity) || quantity <= 0 || !date) {
+        showToast("Please fill in every field");
+        return;
+      }
+      entries.push({
+        id: Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8),
+        symbol,
+        quantity,
+        date,
+        created: Date.now(),
+      });
+      save();
+      els.form.reset();
+      closeForm();
+      render();
+      showToast("Saved");
+    });
+
+    // ─────────────────────────────────────────────
+    //  Selection / batch delete
+    // ─────────────────────────────────────────────
+    els.selectBtn.addEventListener("click", () => {
+      selectMode = !selectMode;
+      selected.clear();
+      els.selectBtn.classList.toggle("active", selectMode);
+      els.selectBtn.textContent = selectMode ? "Done" : "Select";
+      syncConfirmBar();
+      render();
+    });
+
+    els.deleteBtn.addEventListener("click", () => {
+      if (selected.size === 0) return;
+      const n = selected.size;
+      const ok = window.confirm(`Delete ${n} entr${n === 1 ? "y" : "ies"}? This can't be undone.`);
+      if (!ok) return;
+      entries = entries.filter(e => !selected.has(e.id));
+      save();
+      selected.clear();
+      selectMode = false;
+      els.selectBtn.classList.remove("active");
+      els.selectBtn.textContent = "Select";
+      syncConfirmBar();
+      render();
+      showToast(`Deleted ${n}`);
+    });
+
+    function syncConfirmBar() {
+      const show = selectMode && selected.size > 0;
+      els.confirmBar.classList.toggle("show", show);
+      els.selectedCount.textContent = String(selected.size);
+    }
+
+    // ─────────────────────────────────────────────
+    //  Toast
+    // ─────────────────────────────────────────────
+    let toastTimer = null;
+    function showToast(msg) {
+      els.toast.textContent = msg;
+      els.toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => els.toast.classList.remove("show"), 1800);
+    }
+
+    // ─────────────────────────────────────────────
+    //  Day-rollover refresh
+    // ─────────────────────────────────────────────
+    function scheduleNextMidnight() {
+      const now = new Date();
+      const next = new Date(now);
+      next.setDate(now.getDate() + 1);
+      next.setHours(0, 0, 5, 0);
+      const ms = Math.max(1000, next - now);
+      setTimeout(() => { render(); scheduleNextMidnight(); }, ms);
+    }
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) render();
+    });
+
+    // ─────────────────────────────────────────────
+    //  Init
+    // ─────────────────────────────────────────────
+    load();
+    els.date.value = todayISO();
+    render();
+    scheduleNextMidnight();
+  </script>
+</body>
+</html>
